@@ -1,0 +1,154 @@
+#
+sys
+#
+#BEHAVIOR INBOUND.
+#
+traffic behavior BH_INTERNET_IPV4_NBR_{{ipv4_underline}}_IN
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+traffic behavior BH_INTERNET_IPV6_NBR_{{ipv6_underline}}_IN
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+traffic behavior BH_INTERNET_CLIENTES_IPV6_NBR_{{ipv6_underline}}_IN
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+#TRAFFIC-POLICY AND CLASSIFIER INBOUND.
+#
+traffic policy TP_INTERNET_{{provider_name}}_NBR_{{ipv4_underline}}_IN
+ share-mode
+ statistics enable
+ classifier CL_INTERNET_IPV4_IN behavior BH_INTERNET_IPV4_NBR_{{ipv4_underline}}_IN precedence 5
+ classifier CL_INTERNET_IPV6_IN behavior BH_INTERNET_IPV6_NBR_{{ipv6_underline}}_IN precedence 10
+ classifier CL_INTERNET_CLIENTES_IPV6_IN behavior BH_INTERNET_CLIENTES_IPV6_NBR_{{ipv6_underline}}_IN precedence 15
+#
+#BEHAVIOR OUTBOUND.
+#
+traffic behavior BH_INTERNET_IPV4_NBR_{{ipv4_underline}}_OUT
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+traffic behavior BH_INTERNET_PA_IPV6_NBR_{{ipv6_underline}}_OUT
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+traffic behavior BH_INTERNET_CLIENTES_IPV6_NBR_{{ipv6_underline}}_OUT
+ car cir 98000000 pir 98000000 cbs 18700000 pbs 18700000 green pass yellow pass service-class af1 color green red discard color-aware
+#
+#TRAFFIC-POLICY AND CLASSIFIER OUTBOUND.
+#
+traffic policy TP_INTERNET_{{provider_name}}_NBR_{{ipv4_underline}}_OUT
+ share-mode
+ statistics enable
+ classifier CL_INTERNET_IPV4_OUT behavior BH_INTERNET_IPV4_NBR_{{ipv4_underline}}_OUT precedence 5
+ classifier CL_INTERNET_IPV6_OUT behavior BH_INTERNET_IPV6_NBR_{{ipv6_underline}}_OUT precedence 10
+ classifier CL_INTERNET_CLIENTES_IPV6_OUT behavior BH_INTERNET_CLIENTES_IPV6_NBR_{{ipv6_underline}}_OUT precedence 15
+#
+#INBOUND AND OUTBOUND FILTER FOR IPv4.
+#
+xpl route-filter XPL_{{provider_name}}_SALIDA_{{ipv4_underline}}_100G
+ if ip route-destination in INT_PFX_CLIENTES_1 then
+  refuse
+ elseif ip route-destination in INT_PFX_CLIENTES_2 then
+  refuse
+ elseif ip route-destination in INT_PFX_CLIENTES_3 then
+  refuse
+ elseif ip route-destination in INT_PFX_CLIENTES_4 then
+  refuse
+ elseif ip route-destination in INT_PFX_CLIENTES_5 then
+  refuse
+ elseif ip route-destination in INT_PFX_CLIENTES_6 then
+  refuse
+ else
+  refuse
+ endif
+ end-filter
+#
+xpl route-filter policy_nbr_{{ipv4_underline}}_ipv4_unicast_in
+ if (as-path in aspath_1_p1_deny and ip route-destination in pfx_RFC1918_p1_deny) then
+  refuse
+ elseif (as-path in aspath_1_p2_permit and ip route-destination in pfx_RFC1918_p2_permit) then
+  approve
+ endif
+ end-filter
+#
+xpl route-filter policy_nbr_{{ipv4_underline}}_ipv4_unicast_out
+ if (as-path in aspath_150 and ip route-destination in pfx_RFC1918_out_ebgp_p1_deny) then
+  refuse
+ elseif (as-path in aspath_150 and ip route-destination in pfx_RFC1918_out_ebgp_p2_permit) then
+  call route-filter XPL_{{provider_name}}_SALIDA_{{ipv4_underline}}_100G
+ endif
+ end-filter
+#
+#INBOUND AND OUTBOUND FILTER FOR IPv6.
+#
+xpl route-filter XPL_{{provider_name}}_{{ipv6_underline}}_ipv6_out
+ if ipv6 route-destination in PFX_INFINITUM_IPv6 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_1 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_2 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_3 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_4 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_5 then
+  refuse
+ elseif ipv6 route-destination in INT_PFX_IPV6_CLIENTES_6 then
+  refuse
+ else
+  refuse
+ endif
+ end-filter
+#
+xpl route-filter policy_nbr_{{ipv6_underline}}_ipv6_in
+ if (as-path in aspath_1_p2_permit and ipv6 route-destination in pfx_BCP_IPv6_in_ebgp_permit) then
+  approve
+ endif
+ end-filter
+#
+xpl route-filter XPL_POLICY_{{provider_name}}_{{ipv6_underline}}_ipv6_out
+ if as-path in aspath_150 then
+  call route-filter XPL_{{provider_name}}_{{ipv6_underline}}_ipv6_out
+ endif
+ end-filter
+#
+#INTERFACE CONFIG AND BGP PEER.
+#
+interface {{interface}}
+description {{description}}
+undo shutdown
+set flow-stat interval 30
+ipv6 enable
+ip address {{ipv4_add}}
+ipv6 address {{ipv6_add}}
+traffic-policy TP_INTERNET_{{provider_name}}_NBR_{{ipv4_underline}}_IN inbound
+traffic-policy TP_INTERNET_{{provider_name}}_NBR_{{ipv4_underline}}_OUT outbound
+#
+commit
+#
+bgp {{local_asn}}
+ peer {{bgp_neighbor}} as-number {{remote_asn}}
+ peer {{bgp_neighbor}} description {{description_v4}}
+ peer {{bgp_neighbor_v6}} as-number {{remote_asn}}
+ peer {{bgp_neighbor_v6}} description {{description_v6}}
+ ipv4-family unicast
+  peer {{bgp_neighbor}} enable
+  YES
+  peer {{bgp_neighbor}} public-as-only
+  peer {{bgp_neighbor}} route-filter policy_nbr_{{ipv4_underline}}_ipv4_unicast_in import
+  peer {{bgp_neighbor}} route-filter policy_nbr_{{ipv4_underline}}_ipv4_unicast_out export
+  peer {{bgp_neighbor}} advertise-community
+  peer {{bgp_neighbor}} advertise-ext-community
+ ipv6-family unicast
+  peer {{bgp_neighbor_v6}} enable
+  peer {{bgp_neighbor_v6}} public-as-only force
+  peer {{bgp_neighbor_v6}} route-filter policy_nbr_{{ipv6_underline}}_ipv6_in import
+  peer {{bgp_neighbor_v6}} route-filter XPL_POLICY_{{provider_name}}_{{ipv6_underline}}_ipv6_out export
+  peer {{bgp_neighbor_v6}} advertise-community
+  peer {{bgp_neighbor_v6}} advertise-ext-community
+#
+commit
+#
+quit
+#
+save
+#
