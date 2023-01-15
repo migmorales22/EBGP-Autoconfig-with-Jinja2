@@ -1,6 +1,6 @@
 # EBGP Autoconfig with Jinja2
 
-This script automates the process of configuring eBGP using Jinja2 templates. It prompts the user for all necessary eBGP variables, such as AS numbers, peer IPs, and network prefixes, and then uses these inputs to generate a router configuration. By leveraging the power of Jinja2, the script allows for easy customization of eBGP templates and can be used to quickly and efficiently set up eBGP on multiple routers. Whether you are a network administrator or studying for your CCNP, this script is a valuable tool for automating eBGP configuration.
+This script automates the process of configuring eBGP in Huawei devices using Jinja2 templates. It prompts the user for all necessary eBGP variables, such as AS numbers, peer IPs, and network prefixes, and then uses these inputs to generate a router configuration. By leveraging the power of Jinja2, the script allows for easy customization of eBGP templates and can be used to quickly and efficiently set up eBGP on multiple routers. Whether you are a network administrator or studying for your CCNP, this script is a valuable tool for automating eBGP configuration.
 
 **Note:**  The script will prompt you for all the necessary eBGP variables:
 ```js
